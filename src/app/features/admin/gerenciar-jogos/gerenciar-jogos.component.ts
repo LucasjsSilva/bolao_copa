@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, NgZone, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Bolao, Jogo, SupabaseService, Time } from '../../../core/supabase.service';
@@ -252,6 +252,7 @@ const FASE_LABELS: Record<string, string> = {
 export class GerenciarJogosComponent {
   private readonly db = inject(SupabaseService);
   private readonly route = inject(ActivatedRoute);
+  private readonly ngZone = inject(NgZone);
 
   readonly bolao = signal<Bolao | null>(null);
   readonly jogos = signal<Jogo[]>([]);
@@ -285,12 +286,16 @@ export class GerenciarJogosComponent {
     void this.loadData();
   }
 
+  // Wrap in ngZone.run() so signal.set() always runs inside Angular's zone,
+  // preventing the NG0600 "signal written outside of reactive context" error.
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
     if (!target?.closest('.team-selector')) {
-      this.showTimeADropdown.set(false);
-      this.showTimeBDropdown.set(false);
+      this.ngZone.run(() => {
+        this.showTimeADropdown.set(false);
+        this.showTimeBDropdown.set(false);
+      });
     }
   }
 
