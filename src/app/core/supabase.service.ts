@@ -117,9 +117,13 @@ export class SupabaseService {
   }
 
   async encerrarJogo(jogoId: string, placar_a: number, placar_b: number) {
+    // Garantir que os valores são números (inputs HTML podem retornar string via ngModel)
+    const golsA = Number(placar_a);
+    const golsB = Number(placar_b);
+
     const { error } = await this.supabase
       .from('jogos')
-      .update({ placar_a, placar_b, encerrado: true })
+      .update({ placar_a: golsA, placar_b: golsB, encerrado: true })
       .eq('id', jogoId);
 
     if (error) {
@@ -141,10 +145,11 @@ export class SupabaseService {
 
     const total = palpites.length;
     const acertadores = (palpites as Palpite[]).filter(
-      (palpite) => palpite.palpite_a === placar_a && palpite.palpite_b === placar_b,
+      // Usar Number() em ambos os lados para garantir comparação numérica
+      (palpite) => Number(palpite.palpite_a) === golsA && Number(palpite.palpite_b) === golsB,
     );
-    // Scoring rule: total points = number of participants (each bet 1 point).
-    // Winners split evenly: solo winner takes all; ties divide the pool equally.
+    // Regra: total de pontos = nº de participantes (cada um aposta 1 ponto).
+    // Vencedores dividem o total igualmente; se ninguém acertou, ninguém ganha.
     const pontosParaCada = acertadores.length > 0 ? total / acertadores.length : 0;
 
     await Promise.all(
