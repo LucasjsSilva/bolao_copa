@@ -87,15 +87,20 @@ export class AppComponent {
   editUsernameValue = '';
 
   constructor() {
-    effect(() => {
-      const user = this.auth.currentUser();
-      if (user) {
-        void this.loadProfile(user.id);
-      } else {
-        this.profileUsername.set(null);
-        this.showEditUsername.set(false);
-      }
-    });
+    // allowSignalWrites:true is required because this effect writes to signals
+    // (profileUsername, showEditUsername). Without it Angular throws NG0600.
+    effect(
+      () => {
+        const user = this.auth.currentUser();
+        if (user) {
+          void this.loadProfile(user.id);
+        } else {
+          this.profileUsername.set(null);
+          this.showEditUsername.set(false);
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   toggleEditUsername(): void {
@@ -140,4 +145,3 @@ export class AppComponent {
     this.editUsernameValue = this.profileUsername() ?? '';
   }
 }
-
