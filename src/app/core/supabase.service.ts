@@ -120,44 +120,24 @@ export class SupabaseService {
     const golsA = Number(placar_a);
     const golsB = Number(placar_b);
 
-    const { error } = await this.supabase
+    // 1. Atualiza o placar e encerra o jogo
+    const { error: jogoError } = await this.supabase
       .from('jogos')
       .update({ placar_a: golsA, placar_b: golsB, encerrado: true })
       .eq('id', jogoId);
 
-    if (error) {
-      return { error };
+    if (jogoError) {
+      return { error: jogoError };
     }
 
-    const { data: palpites, error: palpitesError } = await this.supabase
-      .from('palpites')
-      .select('*')
-      .eq('jogo_id', jogoId);
+    // 2. Distribui os pontos via RPC (SECURITY DEFINER — contorna RLS no UPDATE de palpites)
+    const { error: rpcError } = await this.supabase.rpc('distribuir_pontos', {
+      p_jogo_id: jogoId,
+      p_placar_a: golsA,
+      p_placar_b: golsB,
+    });
 
-    if (palpitesError) {
-      return { error: palpitesError };
-    }
-
-    if (!palpites || palpites.length === 0) {
-      return { error: null };
-    }
-
-    const total = palpites.length;
-    const acertadores = (palpites as Palpite[]).filter(
-      (palpite) => Number(palpite.palpite_a) === golsA && Number(palpite.palpite_b) === golsB,
-    );
-    const pontosParaCada = acertadores.length > 0 ? total / acertadores.length : 0;
-
-    await Promise.all(
-      acertadores.map((palpite) =>
-        this.supabase
-          .from('palpites')
-          .update({ pontos_ganhos: pontosParaCada })
-          .eq('id', palpite.id),
-      ),
-    );
-
-    return { error: null };
+    return { error: rpcError ?? null };
   }
 
   async getParticipante(bolaoId: string, userId: string) {
