@@ -3,7 +3,7 @@ import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
-import { SupabaseService } from './core/supabase.service';
+import { Profile, SupabaseService } from './core/supabase.service';
 
 @Component({
   selector: 'app-root',
@@ -136,7 +136,7 @@ export class AppComponent {
 
   private async loadProfile(userId: string): Promise<void> {
     const { data } = await this.db.getProfile(userId);
-    this.profileUsername.set((data as { username?: string } | null)?.username ?? null);
+    this.profileUsername.set((data as Profile | null)?.username ?? null);
     this.editUsernameValue = this.profileUsername() ?? '';
   }
 }

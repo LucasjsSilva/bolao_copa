@@ -225,7 +225,9 @@ export class SupabaseService {
       .eq('user_id', userId);
 
     if (partErr) return { data: null, error: partErr };
-    if (!participantes?.length) return { data: { boloes: [] as Bolao[], jogos: [] as Jogo[], palpites: [] as Palpite[] }, error: null };
+    if (!participantes?.length) {
+      return { data: { boloes: [] as Bolao[], jogos: [] as Jogo[], palpites: [] as Palpite[] }, error: null };
+    }
 
     const bolaoIds = (participantes as { bolao_id: string }[]).map((p) => p.bolao_id);
 
