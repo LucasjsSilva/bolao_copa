@@ -130,7 +130,6 @@ const FASE_LABELS: Record<string, string> = {
                   />
                   <button
                     type="button"
-                    *ngIf="!jogo.palpite"
                     (click)="salvarPalpite(jogo)"
                     [disabled]="savingId() === jogo.id"
                     class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
