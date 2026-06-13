@@ -95,7 +95,7 @@ const FASE_LABELS: Record<string, string> = {
               <div class="flex items-center gap-2">
                 <span class="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">{{ faseLabel(jogo.fase) }}</span>
                 <span *ngIf="jogo.encerrado" class="rounded-full bg-emerald-900 px-2 py-0.5 text-xs text-emerald-300">Encerrado</span>
-                <span *ngIf="!jogo.encerrado && jogo.palpite" class="text-emerald-400 text-sm font-bold">✓</span>
+                <span *ngIf="!jogo.encerrado && jogo.palpite" class="text-emerald-400 text-sm font-bold">✓ Palpite registrado</span>
               </div>
               <span class="text-xs text-slate-400">{{ jogo.data_jogo | date: 'dd/MM HH:mm' }}</span>
             </div>
@@ -112,7 +112,8 @@ const FASE_LABELS: Record<string, string> = {
             </div>
 
             <ng-container *ngIf="participante()">
-              <div *ngIf="!jogo.encerrado && !isJogoComecou(jogo)">
+              <!-- Formulário: só aparece se ainda não tem palpite E o jogo não começou -->
+              <div *ngIf="!jogo.palpite && !jogo.encerrado && !isJogoComecou(jogo)">
                 <p class="mb-2 text-center text-xs text-amber-400">🎯 Você está apostando 1 ponto neste jogo</p>
                 <div class="flex items-center justify-center gap-3">
                   <input
@@ -134,11 +135,18 @@ const FASE_LABELS: Record<string, string> = {
                     [disabled]="savingId() === jogo.id"
                     class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                   >
-                    {{ savingId() === jogo.id ? 'Salvando...' : (jogo.palpite ? 'Atualizar' : 'Salvar') }}
+                    {{ savingId() === jogo.id ? 'Salvando...' : 'Salvar' }}
                   </button>
                 </div>
               </div>
 
+              <!-- Palpite já salvo + jogo ainda não começou -->
+              <div *ngIf="jogo.palpite && !jogo.encerrado && !isJogoComecou(jogo)" class="text-center rounded-xl bg-emerald-900/30 border border-emerald-800 p-3">
+                <p class="text-xs text-slate-400 mb-1">Seu palpite (não pode ser alterado)</p>
+                <p class="font-bold text-emerald-400 text-lg">{{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}</p>
+              </div>
+
+              <!-- Jogo em andamento ou encerrado -->
               <div *ngIf="jogo.palpite && (jogo.encerrado || isJogoComecou(jogo))" class="text-center">
                 <div *ngIf="jogo.encerrado; else emAndamento" class="flex items-center justify-center gap-6 rounded-xl bg-slate-700/50 p-3">
                   <div class="text-center">
@@ -173,6 +181,7 @@ const FASE_LABELS: Record<string, string> = {
               </div>
             </ng-container>
 
+            <!-- Palpites de todos os participantes -->
             <div class="mt-4 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
               <h3 class="mb-1 text-sm font-semibold text-emerald-300">
                 Palpites dos participantes ({{ countPalpites(jogo.id) }} apostas)
@@ -297,6 +306,9 @@ export class PalpitesComponent {
   }
 
   async salvarPalpite(jogo: JogoComPalpite): Promise<void> {
+    // Só salva se ainda não tem palpite (não permite atualizar)
+    if (jogo.palpite) return;
+
     const bolao = this.bolao();
     const user = this.auth.currentUser();
     if (!bolao || !user || jogo.palpite_a_input === null || jogo.palpite_b_input === null) {
@@ -306,7 +318,7 @@ export class PalpitesComponent {
     this.savingId.set(jogo.id);
 
     try {
-      const { data, error } = await this.db.upsertPalpite({
+      const { data, error } = await this.db.insertPalpite({
         jogo_id: jogo.id,
         user_id: user.id,
         bolao_id: bolao.id,
