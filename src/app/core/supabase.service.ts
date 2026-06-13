@@ -180,6 +180,14 @@ export class SupabaseService {
     return this.supabase.from('palpites').select('*').eq('bolao_id', bolaoId).eq('user_id', userId);
   }
 
+  async getPalpitesByJogo(jogoId: string) {
+    return this.supabase.from('palpites').select('*').eq('jogo_id', jogoId);
+  }
+
+  async getParticipantesByBolao(bolaoId: string) {
+    return this.supabase.from('participantes').select('*').eq('bolao_id', bolaoId);
+  }
+
   async upsertPalpite(palpite: Omit<Palpite, 'id' | 'created_at' | 'pontos_ganhos'>) {
     return this.supabase
       .from('palpites')

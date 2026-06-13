@@ -232,10 +232,18 @@ create policy "Participantes podem atualizar seu nome"
   with check (auth.uid() = user_id);
 
 drop policy if exists "Usuários podem ler seus próprios palpites" on public.palpites;
-create policy "Usuários podem ler seus próprios palpites"
+drop policy if exists "Palpites visíveis após jogo começar" on public.palpites;
+create policy "Palpites visíveis após jogo começar"
   on public.palpites for select
-  to authenticated
-  using (auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    or
+    exists (
+      select 1 from public.jogos
+      where jogos.id = palpites.jogo_id
+        and (jogos.encerrado = true or jogos.data_jogo <= timezone('utc', now()))
+    )
+  );
 
 drop policy if exists "Usuários podem criar palpites antes do jogo" on public.palpites;
 create policy "Usuários podem criar palpites antes do jogo"
@@ -307,4 +315,5 @@ grant select on public.times to anon, authenticated;
 grant insert, update, delete on public.boloes to authenticated;
 grant insert, update, delete on public.jogos to authenticated;
 grant insert, update on public.participantes to authenticated;
-grant select, insert, update on public.palpites to authenticated;
+grant select on public.palpites to anon, authenticated;
+grant insert, update on public.palpites to authenticated;

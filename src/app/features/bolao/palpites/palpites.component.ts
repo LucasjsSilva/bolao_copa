@@ -11,6 +11,11 @@ interface JogoComPalpite extends Jogo {
   palpite_b_input: number | null;
 }
 
+interface PalpiteParticipanteView {
+  nome: string;
+  palpite: Palpite | null;
+}
+
 const FASE_LABELS: Record<string, string> = {
   grupos: 'Fase de Grupos',
   dezesseis_avos: '16 avos de Final',
@@ -167,6 +172,33 @@ const FASE_LABELS: Record<string, string> = {
                 Sem palpite registrado.
               </div>
             </ng-container>
+
+            <div class="mt-4 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+              <h3 class="mb-1 text-sm font-semibold text-emerald-300">
+                Palpites dos participantes ({{ countPalpites(jogo.id) }} apostas)
+              </h3>
+              <div *ngIf="palpitesParticipantes(jogo).length === 0" class="text-sm text-slate-400">
+                Nenhum palpite registrado.
+              </div>
+              <div *ngIf="palpitesParticipantes(jogo).length > 0" class="overflow-x-auto">
+                <table class="w-full min-w-[320px] text-sm">
+                  <tbody>
+                    <tr *ngFor="let item of palpitesParticipantes(jogo)" class="border-t border-slate-700/60 first:border-t-0">
+                      <td class="py-2 pr-3 text-slate-200">{{ item.nome }}</td>
+                      <td class="py-2 text-right font-semibold text-white">
+                        {{ palpiteTextoPublico(jogo, item.palpite) }}
+                      </td>
+                      <td *ngIf="jogo.encerrado" class="py-2 pl-3 text-right">
+                        <span *ngIf="item.palpite && acertouPalpite(jogo, item.palpite)" class="text-emerald-400">
+                          ✓ +{{ item.palpite.pontos_ganhos | number: '1.0-2' }}pts
+                        </span>
+                        <span *ngIf="!item.palpite || !acertouPalpite(jogo, item.palpite)" class="text-red-400">✗</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </ng-container>
@@ -186,6 +218,8 @@ export class PalpitesComponent {
   readonly bolao = signal<Bolao | null>(null);
   readonly jogos = signal<JogoComPalpite[]>([]);
   readonly participante = signal<Participante | null>(null);
+  readonly participantes = signal<Participante[]>([]);
+  readonly palpitesPorJogo = signal<Record<string, Palpite[]>>({});
   readonly profile = signal<Profile | null>(null);
   readonly loading = signal(true);
   readonly loadingEntrar = signal(false);
@@ -204,6 +238,33 @@ export class PalpitesComponent {
 
   faseLabel(fase: string): string {
     return FASE_LABELS[fase] ?? fase;
+  }
+
+  countPalpites(jogoId: string): number {
+    return this.palpitesPorJogo()[jogoId]?.length ?? 0;
+  }
+
+  palpitesParticipantes(jogo: Jogo): PalpiteParticipanteView[] {
+    const palpitesDoJogo = this.palpitesPorJogo()[jogo.id] ?? [];
+    const palpitesByUser = new Map(palpitesDoJogo.map((palpite) => [palpite.user_id, palpite]));
+    return this.participantes().map((participante) => ({
+      nome: participante.nome_exibicao,
+      palpite: palpitesByUser.get(participante.user_id) ?? null,
+    }));
+  }
+
+  palpiteTextoPublico(jogo: Jogo, palpite: Palpite | null): string {
+    if (!jogo.encerrado && this.isJogoComecou(jogo)) {
+      return '?';
+    }
+    if (!palpite) {
+      return '—';
+    }
+    return `${palpite.palpite_a} × ${palpite.palpite_b}`;
+  }
+
+  acertouPalpite(jogo: Jogo, palpite: Palpite): boolean {
+    return jogo.placar_a === palpite.palpite_a && jogo.placar_b === palpite.palpite_b;
   }
 
   async entrar(): Promise<void> {
@@ -291,20 +352,29 @@ export class PalpitesComponent {
 
     const { data: jogosRaw } = await this.db.getJogosByBolao(bolao.id);
     const user = this.auth.currentUser();
+    const jogos = jogosRaw ?? [];
 
     let palpites: Palpite[] = [];
-    if (user) {
-      const [{ data: palpitesData }, { data: participante }, { data: profile }] = await Promise.all([
-        this.db.getPalpitesByBolaoAndUser(bolao.id, user.id),
-        this.db.getParticipante(bolao.id, user.id),
-        this.db.getProfile(user.id),
-      ]);
-      palpites = palpitesData ?? [];
-      this.participante.set(participante ?? null);
-      this.profile.set((profile as Profile | null) ?? null);
-    }
+    const [{ data: participantesData }, { data: palpitesData }, { data: profile }] = await Promise.all([
+      this.db.getParticipantesByBolao(bolao.id),
+      user ? this.db.getPalpitesByBolaoAndUser(bolao.id, user.id) : Promise.resolve({ data: [], error: null }),
+      user ? this.db.getProfile(user.id) : Promise.resolve({ data: null, error: null }),
+    ]);
+    const participantes = (participantesData ?? []) as Participante[];
+    this.participantes.set(participantes);
+    this.participante.set(user ? participantes.find((item) => item.user_id === user.id) ?? null : null);
+    this.profile.set((profile as Profile | null) ?? null);
+    palpites = palpitesData ?? [];
 
-    const jogosComPalpite = (jogosRaw ?? []).map((jogo) => {
+    const palpitesPorJogoEntries = await Promise.all(
+      jogos.map(async (jogo) => {
+        const { data } = await this.db.getPalpitesByJogo(jogo.id);
+        return [jogo.id, (data ?? []) as Palpite[]] as const;
+      }),
+    );
+    this.palpitesPorJogo.set(Object.fromEntries(palpitesPorJogoEntries));
+
+    const jogosComPalpite = jogos.map((jogo) => {
       const palpite = palpites.find((item) => item.jogo_id === jogo.id);
       return {
         ...jogo,
