@@ -24,7 +24,7 @@ npm install
 
 ## Ambiente
 
-Edite `src/environments/environment.ts` com as credenciais do seu projeto Supabase:
+Para desenvolvimento local, edite `src/environments/environment.development.ts` com as credenciais do seu projeto Supabase:
 
 ```ts
 export const environment = {
