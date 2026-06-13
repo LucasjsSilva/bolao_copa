@@ -68,7 +68,9 @@ export class TimesComponent implements OnInit {
     }
 
     this.grupos.set(
-      Array.from(map.entries()).map(([grupo, times]) => ({ grupo, times })),
+      Array.from(map.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([grupo, times]) => ({ grupo, times })),
     );
     this.carregando.set(false);
   }
