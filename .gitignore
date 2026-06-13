@@ -1,0 +1,45 @@
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Angular cache
+.angular/cache
+
+# Environment files (nunca versionar chaves)
+src/environments/environment.prod.ts
+
+# Misc
+/.sass-cache
+/connect.lock
+/coverage
+/.nyc_output
+/cypress/videos/
+/cypress/screenshots/
+
+# System Files
+.DS_Store
+Thumbs.db
