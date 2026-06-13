@@ -58,14 +58,6 @@ export interface RankingEntry {
   acertos: number;
 }
 
-export interface Time {
-  id: number;
-  nome: string;
-  grupo: string;
-  bandeira_emoji: string | null;
-  created_at: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
   private readonly supabase: SupabaseClient;
@@ -201,14 +193,10 @@ export class SupabaseService {
   }
 
   async getTimes() {
-<<<<<<< HEAD
-    return this.supabase.from('times').select('*').order('grupo').order('id');
-=======
     return this.supabase
       .from('times')
       .select('*')
       .order('grupo', { ascending: true })
       .order('nome', { ascending: true });
->>>>>>> origin/main
   }
 }
