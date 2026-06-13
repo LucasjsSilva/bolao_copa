@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Bolao, Jogo, SupabaseService } from '../../../core/supabase.service';
+import { Bolao, Jogo, SupabaseService, Time } from '../../../core/supabase.service';
 
 const FASE_LABELS: Record<string, string> = {
   grupos: 'Fase de Grupos',
@@ -38,25 +38,65 @@ const FASE_LABELS: Record<string, string> = {
             <form class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="adicionarJogo()">
               <div>
                 <label class="mb-1 block text-sm text-slate-400">Time A</label>
-                <input
-                  type="text"
-                  [(ngModel)]="novoJogo.time_a"
-                  name="time_a"
-                  required
-                  class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-                  placeholder="Brasil"
-                />
+                <div class="team-selector relative">
+                  <input
+                    type="text"
+                    [(ngModel)]="timeAQuery"
+                    name="time_a"
+                    required
+                    (input)="onTimeInput('A')"
+                    (focus)="onTimeFocus('A')"
+                    autocomplete="off"
+                    class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 pr-9 text-white focus:border-emerald-500 focus:outline-none"
+                    placeholder="Digite para buscar"
+                  />
+                  <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▼</span>
+                  <div
+                    *ngIf="showTimeADropdown()"
+                    class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-600 bg-slate-700 py-1 shadow-lg"
+                  >
+                    <button
+                      *ngFor="let time of filteredTimesA()"
+                      type="button"
+                      (click)="selectTime('A', time)"
+                      class="block w-full px-3 py-2 text-left text-sm text-slate-100 transition-colors hover:bg-slate-600"
+                    >
+                      {{ formatTimeDisplay(time) }}
+                    </button>
+                    <p *ngIf="filteredTimesA().length === 0" class="px-3 py-2 text-sm text-slate-400">Nenhum time encontrado</p>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="mb-1 block text-sm text-slate-400">Time B</label>
-                <input
-                  type="text"
-                  [(ngModel)]="novoJogo.time_b"
-                  name="time_b"
-                  required
-                  class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-                  placeholder="Argentina"
-                />
+                <div class="team-selector relative">
+                  <input
+                    type="text"
+                    [(ngModel)]="timeBQuery"
+                    name="time_b"
+                    required
+                    (input)="onTimeInput('B')"
+                    (focus)="onTimeFocus('B')"
+                    autocomplete="off"
+                    class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 pr-9 text-white focus:border-emerald-500 focus:outline-none"
+                    placeholder="Digite para buscar"
+                  />
+                  <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▼</span>
+                  <div
+                    *ngIf="showTimeBDropdown()"
+                    class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-600 bg-slate-700 py-1 shadow-lg"
+                  >
+                    <button
+                      *ngFor="let time of filteredTimesB()"
+                      type="button"
+                      (click)="selectTime('B', time)"
+                      class="block w-full px-3 py-2 text-left text-sm text-slate-100 transition-colors hover:bg-slate-600"
+                    >
+                      {{ formatTimeDisplay(time) }}
+                    </button>
+                    <p *ngIf="filteredTimesB().length === 0" class="px-3 py-2 text-sm text-slate-400">Nenhum time encontrado</p>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="mb-1 block text-sm text-slate-400">Data e hora</label>
@@ -97,6 +137,7 @@ const FASE_LABELS: Record<string, string> = {
             <div *ngIf="errorMsg()" class="mt-3 rounded-lg border border-red-700 bg-red-900/40 p-3 text-sm text-red-200">
               {{ errorMsg() }}
             </div>
+            <div *ngIf="loadingTimes()" class="mt-3 text-sm text-slate-400">Carregando times...</div>
           </ng-container>
           <ng-template #jogoJaCadastrado>
             <p class="text-slate-400">Este bolão já possui um jogo cadastrado.</p>
@@ -219,6 +260,10 @@ export class GerenciarJogosComponent {
   readonly modalJogo = signal<Jogo | null>(null);
   readonly loadingModal = signal(false);
   readonly modalError = signal('');
+  readonly times = signal<Time[]>([]);
+  readonly loadingTimes = signal(true);
+  readonly showTimeADropdown = signal(false);
+  readonly showTimeBDropdown = signal(false);
 
   readonly novoJogo = {
     time_a: '',
@@ -227,6 +272,8 @@ export class GerenciarJogosComponent {
     fase: 'grupos',
   };
 
+  timeAQuery = '';
+  timeBQuery = '';
   placarA: number | null = null;
   placarB: number | null = null;
   private bolaoId = '';
@@ -234,6 +281,60 @@ export class GerenciarJogosComponent {
   constructor() {
     this.bolaoId = this.route.snapshot.paramMap.get('id') ?? '';
     void this.loadData();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest('.team-selector')) {
+      this.showTimeADropdown.set(false);
+      this.showTimeBDropdown.set(false);
+    }
+  }
+
+  formatTimeDisplay(time: Time): string {
+    return `${time.bandeira_emoji ?? ''} ${time.nome}`.trim();
+  }
+
+  filteredTimesA(): Time[] {
+    return this.filterTimes(this.timeAQuery);
+  }
+
+  filteredTimesB(): Time[] {
+    return this.filterTimes(this.timeBQuery);
+  }
+
+  onTimeInput(team: 'A' | 'B'): void {
+    if (team === 'A') {
+      this.novoJogo.time_a = '';
+      this.showTimeADropdown.set(true);
+      return;
+    }
+
+    this.novoJogo.time_b = '';
+    this.showTimeBDropdown.set(true);
+  }
+
+  onTimeFocus(team: 'A' | 'B'): void {
+    if (team === 'A') {
+      this.showTimeADropdown.set(false);
+      return;
+    }
+
+    this.showTimeBDropdown.set(false);
+  }
+
+  selectTime(team: 'A' | 'B', time: Time): void {
+    if (team === 'A') {
+      this.novoJogo.time_a = time.nome;
+      this.timeAQuery = this.formatTimeDisplay(time);
+      this.showTimeADropdown.set(false);
+      return;
+    }
+
+    this.novoJogo.time_b = time.nome;
+    this.timeBQuery = this.formatTimeDisplay(time);
+    this.showTimeBDropdown.set(false);
   }
 
   async adicionarJogo(): Promise<void> {
@@ -263,6 +364,8 @@ export class GerenciarJogosComponent {
       this.jogos.update((lista) => [...lista, data].sort((a, b) => new Date(a.data_jogo).getTime() - new Date(b.data_jogo).getTime()));
       this.novoJogo.time_a = '';
       this.novoJogo.time_b = '';
+      this.timeAQuery = '';
+      this.timeBQuery = '';
       this.novoJogo.data_jogo = '';
       this.novoJogo.fase = 'grupos';
     } catch (err: unknown) {
@@ -334,12 +437,24 @@ export class GerenciarJogosComponent {
   }
 
   private async loadData(): Promise<void> {
-    const [{ data: bolao }, { data: jogos }] = await Promise.all([
+    const [{ data: bolao }, { data: jogos }, { data: times }] = await Promise.all([
       this.db.getBolaoById(this.bolaoId),
       this.db.getJogosByBolao(this.bolaoId),
+      this.db.getTimes(),
     ]);
 
     this.bolao.set(bolao ?? null);
     this.jogos.set(jogos ?? []);
+    this.times.set((times ?? []) as Time[]);
+    this.loadingTimes.set(false);
+  }
+
+  private filterTimes(query: string): Time[] {
+    const search = query.trim().toLowerCase();
+    if (!search) {
+      return this.times();
+    }
+
+    return this.times().filter((time) => time.nome.toLowerCase().includes(search));
   }
 }
