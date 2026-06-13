@@ -117,7 +117,6 @@ export class SupabaseService {
   }
 
   async encerrarJogo(jogoId: string, placar_a: number, placar_b: number) {
-    // Garantir que os valores são números (inputs HTML podem retornar string via ngModel)
     const golsA = Number(placar_a);
     const golsB = Number(placar_b);
 
@@ -145,11 +144,8 @@ export class SupabaseService {
 
     const total = palpites.length;
     const acertadores = (palpites as Palpite[]).filter(
-      // Usar Number() em ambos os lados para garantir comparação numérica
       (palpite) => Number(palpite.palpite_a) === golsA && Number(palpite.palpite_b) === golsB,
     );
-    // Regra: total de pontos = nº de participantes (cada um aposta 1 ponto).
-    // Vencedores dividem o total igualmente; se ninguém acertou, ninguém ganha.
     const pontosParaCada = acertadores.length > 0 ? total / acertadores.length : 0;
 
     await Promise.all(
@@ -193,12 +189,18 @@ export class SupabaseService {
     return this.supabase.from('participantes').select('*').eq('bolao_id', bolaoId);
   }
 
-  async upsertPalpite(palpite: Omit<Palpite, 'id' | 'created_at' | 'pontos_ganhos'>) {
+  /** Insert-only: palpite não pode ser atualizado após salvo. */
+  async insertPalpite(palpite: Omit<Palpite, 'id' | 'created_at' | 'pontos_ganhos'>) {
     return this.supabase
       .from('palpites')
-      .upsert({ ...palpite, pontos_ganhos: 0 }, { onConflict: 'jogo_id,user_id' })
+      .insert({ ...palpite, pontos_ganhos: 0 })
       .select()
       .single();
+  }
+
+  /** @deprecated Use insertPalpite — mantido apenas para compatibilidade de código legado. */
+  async upsertPalpite(palpite: Omit<Palpite, 'id' | 'created_at' | 'pontos_ganhos'>) {
+    return this.insertPalpite(palpite);
   }
 
   async getRanking(bolaoId: string) {
