@@ -33,7 +33,7 @@ interface Grupo {
           *ngFor="let grupo of grupos()"
           class="rounded-2xl border border-slate-700 bg-slate-800 p-4"
         >
-          <h2 class="mb-3 text-center text-lg font-bold text-emerald-400">{{ grupo.nome }}</h2>
+          <h2 class="mb-3 text-center text-lg font-bold text-emerald-400">Grupo {{ grupo.nome }}</h2>
           <ul class="space-y-2">
             <li
               *ngFor="let time of grupo.times"
@@ -63,9 +63,10 @@ export class TimesComponent {
     if (data) {
       const gruposMap = new Map<string, Time[]>();
       for (const time of data) {
-        const lista = gruposMap.get(time.grupo) ?? [];
-        lista.push(time);
-        gruposMap.set(time.grupo, lista);
+        if (!gruposMap.has(time.grupo)) {
+          gruposMap.set(time.grupo, []);
+        }
+        gruposMap.get(time.grupo)!.push(time);
       }
       const grupos: Grupo[] = [];
       gruposMap.forEach((times, nome) => {

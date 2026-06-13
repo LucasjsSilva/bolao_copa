@@ -127,13 +127,10 @@ const FASE_LABELS: Record<string, string> = {
                     {{ savingId() === jogo.id ? 'Salvando...' : (jogo.palpite ? 'Atualizar' : 'Salvar') }}
                   </button>
                 </div>
-                <div *ngIf="jogo.palpite" class="mt-2 text-center text-sm text-emerald-400">
-                  ✓ Palpite salvo: <span class="font-semibold">{{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}</span>
-                </div>
               </div>
 
               <div *ngIf="jogo.palpite && (jogo.encerrado || isJogoComecou(jogo))" class="text-center">
-                <div *ngIf="jogo.encerrado" class="flex items-center justify-center gap-6 rounded-xl bg-slate-700/50 p-3">
+                <div *ngIf="jogo.encerrado; else emAndamento" class="flex items-center justify-center gap-6 rounded-xl bg-slate-700/50 p-3">
                   <div class="text-center">
                     <p class="text-xs text-slate-400 mb-1">Placar real</p>
                     <p class="font-bold text-white text-lg">{{ jogo.placar_a }} × {{ jogo.placar_b }}</p>
@@ -153,10 +150,12 @@ const FASE_LABELS: Record<string, string> = {
                     </span>
                   </div>
                 </div>
-                <p *ngIf="!jogo.encerrado" class="text-sm text-slate-400">
-                  Seu palpite:
-                  <span class="font-semibold text-white">{{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}</span>
-                </p>
+                <ng-template #emAndamento>
+                  <p class="text-sm text-slate-400">
+                    Seu palpite: <span class="font-semibold text-white">{{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}</span>
+                    <span class="ml-2 text-slate-500">· Em andamento</span>
+                  </p>
+                </ng-template>
               </div>
 
               <div *ngIf="!jogo.palpite && (jogo.encerrado || isJogoComecou(jogo))" class="text-center text-sm text-slate-500">
