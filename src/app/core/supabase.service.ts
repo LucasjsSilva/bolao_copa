@@ -42,6 +42,14 @@ export interface Palpite {
   created_at: string;
 }
 
+export interface Time {
+  id: number;
+  nome: string;
+  grupo: string;
+  bandeira_emoji: string | null;
+  created_at: string;
+}
+
 export interface RankingEntry {
   bolao_id: string;
   user_id: string;
@@ -182,5 +190,9 @@ export class SupabaseService {
       .order('total_pontos', { ascending: false })
       .order('acertos', { ascending: false })
       .order('nome_exibicao', { ascending: true });
+  }
+
+  async getTimes() {
+    return this.supabase.from('times').select('*').order('grupo').order('id');
   }
 }

@@ -217,11 +217,77 @@ create policy "Usuários podem editar palpites antes do jogo"
     )
   );
 
+create table if not exists public.times (
+  id serial primary key,
+  nome text not null,
+  grupo text not null,
+  bandeira_emoji text,
+  created_at timestamptz default now()
+);
+
+alter table public.times enable row level security;
+
+drop policy if exists "Times são públicos para leitura" on public.times;
+create policy "Times são públicos para leitura" on public.times for select using (true);
+
+truncate public.times restart identity;
+
+insert into public.times (nome, grupo, bandeira_emoji) values
+  ('México', 'A', '🇲🇽'),
+  ('Coreia do Sul', 'A', '🇰🇷'),
+  ('República Tcheca', 'A', '🇨🇿'),
+  ('África do Sul', 'A', '🇿🇦'),
+  ('Canadá', 'B', '🇨🇦'),
+  ('Suíça', 'B', '🇨🇭'),
+  ('Bósnia-Herzegóvina', 'B', '🇧🇦'),
+  ('Catar', 'B', '🇶🇦'),
+  ('Brasil', 'C', '🇧🇷'),
+  ('Marrocos', 'C', '🇲🇦'),
+  ('Escócia', 'C', '🏴'),
+  ('Haiti', 'C', '🇭🇹'),
+  ('Estados Unidos', 'D', '🇺🇸'),
+  ('Turquia', 'D', '🇹🇷'),
+  ('Austrália', 'D', '🇦🇺'),
+  ('Paraguai', 'D', '🇵🇾'),
+  ('Alemanha', 'E', '🇩🇪'),
+  ('Equador', 'E', '🇪🇨'),
+  ('Costa do Marfim', 'E', '🇨🇮'),
+  ('Curaçau', 'E', '🇨🇼'),
+  ('Holanda', 'F', '🇳🇱'),
+  ('Japão', 'F', '🇯🇵'),
+  ('Suécia', 'F', '🇸🇪'),
+  ('Tunísia', 'F', '🇹🇳'),
+  ('Bélgica', 'G', '🇧🇪'),
+  ('Egito', 'G', '🇪🇬'),
+  ('Irã', 'G', '🇮🇷'),
+  ('Nova Zelândia', 'G', '🇳🇿'),
+  ('Espanha', 'H', '🇪🇸'),
+  ('Uruguai', 'H', '🇺🇾'),
+  ('Arábia Saudita', 'H', '🇸🇦'),
+  ('Cabo Verde', 'H', '🇨🇻'),
+  ('França', 'I', '🇫🇷'),
+  ('Noruega', 'I', '🇳🇴'),
+  ('Senegal', 'I', '🇸🇳'),
+  ('Iraque', 'I', '🇮🇶'),
+  ('Argentina', 'J', '🇦🇷'),
+  ('Áustria', 'J', '🇦🇹'),
+  ('Argélia', 'J', '🇩🇿'),
+  ('Jordânia', 'J', '🇯🇴'),
+  ('Portugal', 'K', '🇵🇹'),
+  ('Colômbia', 'K', '🇨🇴'),
+  ('Uzbequistão', 'K', '🇺🇿'),
+  ('República Democrática do Congo', 'K', '🇨🇩'),
+  ('Inglaterra', 'L', '🏴'),
+  ('Croácia', 'L', '🇭🇷'),
+  ('Gana', 'L', '🇬🇭'),
+  ('Panamá', 'L', '🇵🇦');
+
 grant usage on schema public to anon, authenticated;
 grant select on public.boloes to anon, authenticated;
 grant select on public.jogos to anon, authenticated;
 grant select on public.participantes to anon, authenticated;
 grant select on public.ranking_bolao to anon, authenticated;
+grant select on public.times to anon, authenticated;
 grant insert, update, delete on public.boloes to authenticated;
 grant insert, update, delete on public.jogos to authenticated;
 grant insert, update on public.participantes to authenticated;
