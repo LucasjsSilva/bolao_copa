@@ -31,7 +31,11 @@
                 "glob": "**/*",
                 "input": "public"
               },
-              "src/404.html"
+              {
+                "glob": "404.html",
+                "input": "src",
+                "output": "/"
+              }
             ],
             "styles": [
               "src/styles/styles.scss"
