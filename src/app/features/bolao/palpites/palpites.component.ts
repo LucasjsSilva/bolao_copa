@@ -357,8 +357,8 @@ export class PalpitesComponent {
     let palpites: Palpite[] = [];
     const [{ data: participantesData }, { data: palpitesData }, { data: profile }] = await Promise.all([
       this.db.getParticipantesByBolao(bolao.id),
-      user ? this.db.getPalpitesByBolaoAndUser(bolao.id, user.id) : Promise.resolve({ data: [] as Palpite[], error: null }),
-      user ? this.db.getProfile(user.id) : Promise.resolve({ data: null as Profile | null, error: null }),
+      user ? this.db.getPalpitesByBolaoAndUser(bolao.id, user.id) : Promise.resolve({ data: [], error: null }),
+      user ? this.db.getProfile(user.id) : Promise.resolve({ data: null, error: null }),
     ]);
     const participantes = (participantesData ?? []) as Participante[];
     this.participantes.set(participantes);

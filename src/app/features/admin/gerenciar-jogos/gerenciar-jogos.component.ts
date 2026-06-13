@@ -274,6 +274,8 @@ export class GerenciarJogosComponent {
 
   timeAQuery = '';
   timeBQuery = '';
+  selectedTimeA: Time | null = null;
+  selectedTimeB: Time | null = null;
   placarA: number | null = null;
   placarB: number | null = null;
   private bolaoId = '';
@@ -306,33 +308,43 @@ export class GerenciarJogosComponent {
 
   onTimeInput(team: 'A' | 'B'): void {
     if (team === 'A') {
-      this.novoJogo.time_a = '';
+      const selectedDisplay = this.selectedTimeA ? this.formatTimeDisplay(this.selectedTimeA) : '';
+      if (this.timeAQuery !== selectedDisplay) {
+        this.novoJogo.time_a = '';
+        this.selectedTimeA = null;
+      }
       this.showTimeADropdown.set(true);
       return;
     }
 
-    this.novoJogo.time_b = '';
+    const selectedDisplay = this.selectedTimeB ? this.formatTimeDisplay(this.selectedTimeB) : '';
+    if (this.timeBQuery !== selectedDisplay) {
+      this.novoJogo.time_b = '';
+      this.selectedTimeB = null;
+    }
     this.showTimeBDropdown.set(true);
   }
 
   onTimeFocus(team: 'A' | 'B'): void {
     if (team === 'A') {
-      this.showTimeADropdown.set(false);
+      this.showTimeADropdown.set(true);
       return;
     }
 
-    this.showTimeBDropdown.set(false);
+    this.showTimeBDropdown.set(true);
   }
 
   selectTime(team: 'A' | 'B', time: Time): void {
     if (team === 'A') {
       this.novoJogo.time_a = time.nome;
+      this.selectedTimeA = time;
       this.timeAQuery = this.formatTimeDisplay(time);
       this.showTimeADropdown.set(false);
       return;
     }
 
     this.novoJogo.time_b = time.nome;
+    this.selectedTimeB = time;
     this.timeBQuery = this.formatTimeDisplay(time);
     this.showTimeBDropdown.set(false);
   }
@@ -366,6 +378,8 @@ export class GerenciarJogosComponent {
       this.novoJogo.time_b = '';
       this.timeAQuery = '';
       this.timeBQuery = '';
+      this.selectedTimeA = null;
+      this.selectedTimeB = null;
       this.novoJogo.data_jogo = '';
       this.novoJogo.fase = 'grupos';
     } catch (err: unknown) {
