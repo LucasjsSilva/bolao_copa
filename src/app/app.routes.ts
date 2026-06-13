@@ -22,16 +22,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/bolao/entrar/entrar.component').then((m) => m.EntrarComponent),
   },
   {
-    path: 'times',
-    loadComponent: () => import('./features/times/times.component').then((m) => m.TimesComponent),
-  },
-  {
     path: 'bolao/:codigo',
     loadComponent: () => import('./features/bolao/palpites/palpites.component').then((m) => m.PalpitesComponent),
   },
   {
     path: 'bolao/:codigo/ranking',
     loadComponent: () => import('./features/bolao/ranking/ranking.component').then((m) => m.RankingComponent),
+  },
+  {
+    path: 'times',
+    loadComponent: () => import('./features/times/times.component').then((m) => m.TimesComponent),
   },
   { path: '**', redirectTo: '/auth/login' },
 ];

@@ -193,6 +193,10 @@ export class SupabaseService {
   }
 
   async getTimes() {
-    return this.supabase.from('times').select('*').order('grupo').order('id');
+    return this.supabase
+      .from('times')
+      .select('*')
+      .order('grupo', { ascending: true })
+      .order('nome', { ascending: true });
   }
 }

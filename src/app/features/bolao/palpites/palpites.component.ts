@@ -11,6 +11,16 @@ interface JogoComPalpite extends Jogo {
   palpite_b_input: number | null;
 }
 
+const FASE_LABELS: Record<string, string> = {
+  grupos: 'Fase de Grupos',
+  dezesseis_avos: '16 avos de Final',
+  oitavas: 'Oitavas de Final',
+  quartas: 'Quartas de Final',
+  semi: 'Semifinal',
+  terceiro_lugar: 'Disputa de 3º Lugar',
+  final: 'Final',
+};
+
 @Component({
   selector: 'app-palpites',
   standalone: true,
@@ -69,13 +79,14 @@ interface JogoComPalpite extends Jogo {
         <div class="space-y-4">
           <div
             *ngFor="let jogo of jogos()"
-            class="rounded-2xl border bg-slate-800 p-5"
-            [class]="jogo.encerrado ? 'border-slate-600' : 'border-slate-700'"
+            class="rounded-2xl border bg-slate-800 p-5 transition-colors"
+            [class]="jogo.encerrado ? 'border-slate-600' : (jogo.palpite ? 'border-emerald-700' : 'border-slate-700')"
           >
             <div class="mb-3 flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="rounded-full bg-slate-700 px-2 py-0.5 text-xs capitalize text-slate-300">{{ jogo.fase }}</span>
+                <span class="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">{{ faseLabel(jogo.fase) }}</span>
                 <span *ngIf="jogo.encerrado" class="rounded-full bg-emerald-900 px-2 py-0.5 text-xs text-emerald-300">Encerrado</span>
+                <span *ngIf="!jogo.encerrado && jogo.palpite" class="text-emerald-400 text-sm font-bold">✓</span>
               </div>
               <span class="text-xs text-slate-400">{{ jogo.data_jogo | date: 'dd/MM HH:mm' }}</span>
             </div>
@@ -92,41 +103,59 @@ interface JogoComPalpite extends Jogo {
             </div>
 
             <ng-container *ngIf="participante()">
-              <div *ngIf="!jogo.encerrado && !isJogoComecou(jogo)" class="flex items-center justify-center gap-3">
-                <input
-                  type="number"
-                  [(ngModel)]="jogo.palpite_a_input"
-                  min="0"
-                  class="w-16 rounded-lg border border-slate-600 bg-slate-700 p-2 text-center text-xl font-bold text-white focus:border-emerald-500 focus:outline-none"
-                />
-                <span class="text-slate-400">×</span>
-                <input
-                  type="number"
-                  [(ngModel)]="jogo.palpite_b_input"
-                  min="0"
-                  class="w-16 rounded-lg border border-slate-600 bg-slate-700 p-2 text-center text-xl font-bold text-white focus:border-emerald-500 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  (click)="salvarPalpite(jogo)"
-                  [disabled]="savingId() === jogo.id"
-                  class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {{ savingId() === jogo.id ? 'Salvando...' : 'Salvar' }}
-                </button>
+              <div *ngIf="!jogo.encerrado && !isJogoComecou(jogo)">
+                <div class="flex items-center justify-center gap-3">
+                  <input
+                    type="number"
+                    [(ngModel)]="jogo.palpite_a_input"
+                    min="0"
+                    class="w-16 rounded-lg border border-slate-600 bg-slate-700 p-2 text-center text-xl font-bold text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                  <span class="text-slate-400">×</span>
+                  <input
+                    type="number"
+                    [(ngModel)]="jogo.palpite_b_input"
+                    min="0"
+                    class="w-16 rounded-lg border border-slate-600 bg-slate-700 p-2 text-center text-xl font-bold text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    (click)="salvarPalpite(jogo)"
+                    [disabled]="savingId() === jogo.id"
+                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {{ savingId() === jogo.id ? 'Salvando...' : (jogo.palpite ? 'Atualizar' : 'Salvar') }}
+                  </button>
+                </div>
               </div>
 
               <div *ngIf="jogo.palpite && (jogo.encerrado || isJogoComecou(jogo))" class="text-center">
-                <p class="text-sm text-slate-400">
-                  Seu palpite:
-                  <span class="font-semibold text-white">{{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}</span>
-                </p>
-                <p *ngIf="jogo.encerrado" class="mt-1 text-sm">
-                  <span *ngIf="jogo.palpite.pontos_ganhos > 0" class="font-semibold text-emerald-400">
-                    +{{ jogo.palpite.pontos_ganhos | number: '1.1-2' }} pontos ✓
-                  </span>
-                  <span *ngIf="jogo.palpite.pontos_ganhos === 0" class="text-red-400">0 pontos ✗</span>
-                </p>
+                <div *ngIf="jogo.encerrado; else emAndamento" class="flex items-center justify-center gap-6 rounded-xl bg-slate-700/50 p-3">
+                  <div class="text-center">
+                    <p class="text-xs text-slate-400 mb-1">Placar real</p>
+                    <p class="font-bold text-white text-lg">{{ jogo.placar_a }} × {{ jogo.placar_b }}</p>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-xs text-slate-400 mb-1">Seu palpite</p>
+                    <p class="font-bold text-lg" [class]="jogo.palpite.pontos_ganhos > 0 ? 'text-emerald-400' : 'text-red-400'">
+                      {{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}
+                    </p>
+                  </div>
+                  <div class="text-center">
+                    <span *ngIf="jogo.palpite.pontos_ganhos > 0" class="rounded-full bg-emerald-800 px-3 py-1 text-sm font-bold text-emerald-300">
+                      ✓ Acertou! +{{ jogo.palpite.pontos_ganhos | number: '1.1-2' }}pts
+                    </span>
+                    <span *ngIf="jogo.palpite.pontos_ganhos === 0" class="rounded-full bg-red-900/50 px-3 py-1 text-sm font-bold text-red-400">
+                      ✗ Errou
+                    </span>
+                  </div>
+                </div>
+                <ng-template #emAndamento>
+                  <p class="text-sm text-slate-400">
+                    Seu palpite: <span class="font-semibold text-white">{{ jogo.palpite.palpite_a }} × {{ jogo.palpite.palpite_b }}</span>
+                    <span class="ml-2 text-slate-500">· Em andamento</span>
+                  </p>
+                </ng-template>
               </div>
 
               <div *ngIf="!jogo.palpite && (jogo.encerrado || isJogoComecou(jogo))" class="text-center text-sm text-slate-500">
@@ -164,6 +193,10 @@ export class PalpitesComponent {
 
   isJogoComecou(jogo: Jogo): boolean {
     return new Date(jogo.data_jogo).getTime() <= Date.now();
+  }
+
+  faseLabel(fase: string): string {
+    return FASE_LABELS[fase] ?? fase;
   }
 
   async entrar(): Promise<void> {
