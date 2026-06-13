@@ -50,6 +50,12 @@ export interface RankingEntry {
   acertos: number;
 }
 
+export interface Profile {
+  id: string;
+  username: string;
+  created_at: string;
+}
+
 export interface Time {
   id: number;
   nome: string;
@@ -198,5 +204,50 @@ export class SupabaseService {
       .select('*')
       .order('grupo', { ascending: true })
       .order('nome', { ascending: true });
+  }
+
+  async getProfile(userId: string) {
+    return this.supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  }
+
+  async upsertProfile(userId: string, username: string) {
+    return this.supabase
+      .from('profiles')
+      .upsert({ id: userId, username, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+  }
+
+  async getMeusPalpites(userId: string) {
+    const { data: participantes, error: partErr } = await this.supabase
+      .from('participantes')
+      .select('bolao_id')
+      .eq('user_id', userId);
+
+    if (partErr) return { data: null, error: partErr };
+    if (!participantes?.length) {
+      return { data: { boloes: [] as Bolao[], jogos: [] as Jogo[], palpites: [] as Palpite[] }, error: null };
+    }
+
+    const bolaoIds = (participantes as { bolao_id: string }[]).map((p) => p.bolao_id);
+
+    const [{ data: boloes, error: bolaoErr }, { data: jogos, error: jogosErr }, { data: palpites, error: palpitesErr }] =
+      await Promise.all([
+        this.supabase.from('boloes').select('*').in('id', bolaoIds).order('created_at', { ascending: false }),
+        this.supabase.from('jogos').select('*').in('bolao_id', bolaoIds),
+        this.supabase.from('palpites').select('*').eq('user_id', userId),
+      ]);
+
+    const error = bolaoErr ?? jogosErr ?? palpitesErr;
+    if (error) return { data: null, error };
+
+    return {
+      data: {
+        boloes: (boloes ?? []) as Bolao[],
+        jogos: (jogos ?? []) as Jogo[],
+        palpites: (palpites ?? []) as Palpite[],
+      },
+      error: null,
+    };
   }
 }

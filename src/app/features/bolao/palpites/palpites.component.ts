@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth.service';
-import { Bolao, Jogo, Palpite, Participante, SupabaseService } from '../../../core/supabase.service';
+import { Bolao, Jogo, Palpite, Participante, Profile, SupabaseService } from '../../../core/supabase.service';
 
 interface JogoComPalpite extends Jogo {
   palpite?: Palpite;
@@ -36,8 +36,8 @@ const FASE_LABELS: Record<string, string> = {
             <p class="text-sm text-slate-400">Código: <span class="font-mono">{{ currentBolao.codigo }}</span></p>
           </div>
           <div class="flex flex-wrap gap-3">
-            <a [routerLink]="['/bolao', currentBolao.codigo, 'ranking']" class="rounded-lg bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600">
-              🏆 Ranking
+            <a routerLink="/meus-palpites" class="rounded-lg bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600">
+              📋 Meus Palpites
             </a>
             <a routerLink="/bolao/entrar" class="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-800">
               Outro código
@@ -47,23 +47,27 @@ const FASE_LABELS: Record<string, string> = {
 
         <div *ngIf="!participante() && auth.isLoggedIn()" class="mb-6 rounded-2xl border border-amber-700 bg-amber-900/30 p-6">
           <h2 class="mb-2 font-semibold">Você ainda não participa deste bolão</h2>
-          <form class="flex flex-col gap-3 md:flex-row" (ngSubmit)="entrar()">
-            <input
-              type="text"
-              [(ngModel)]="nomeExibicao"
-              name="nome"
-              required
-              class="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-              placeholder="Seu nome no ranking"
-            />
+          <ng-container *ngIf="profile(); else semPerfil">
+            <p class="mb-3 text-sm text-slate-400">
+              Você vai entrar como <span class="font-semibold text-emerald-400">{{ profile()!.username }}</span>
+            </p>
             <button
-              type="submit"
+              type="button"
+              (click)="entrar()"
               [disabled]="loadingEntrar()"
               class="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
             >
               {{ loadingEntrar() ? 'Entrando...' : 'Entrar no bolão' }}
             </button>
-          </form>
+          </ng-container>
+          <ng-template #semPerfil>
+            <p class="text-sm text-slate-400">
+              Você precisa configurar seu username antes de entrar em um bolão.
+            </p>
+            <a routerLink="/auth/login" class="mt-3 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700">
+              Configurar username
+            </a>
+          </ng-template>
           <div *ngIf="joinError()" class="mt-3 rounded-lg border border-red-700 bg-red-900/40 p-3 text-sm text-red-200">
             {{ joinError() }}
           </div>
@@ -104,6 +108,7 @@ const FASE_LABELS: Record<string, string> = {
 
             <ng-container *ngIf="participante()">
               <div *ngIf="!jogo.encerrado && !isJogoComecou(jogo)">
+                <p class="mb-2 text-center text-xs text-amber-400">🎯 Você está apostando 1 ponto neste jogo</p>
                 <div class="flex items-center justify-center gap-3">
                   <input
                     type="number"
@@ -146,7 +151,7 @@ const FASE_LABELS: Record<string, string> = {
                       ✓ Acertou! +{{ jogo.palpite.pontos_ganhos | number: '1.1-2' }}pts
                     </span>
                     <span *ngIf="jogo.palpite.pontos_ganhos === 0" class="rounded-full bg-red-900/50 px-3 py-1 text-sm font-bold text-red-400">
-                      ✗ Errou
+                      ✗ Você perdeu seu ponto
                     </span>
                   </div>
                 </div>
@@ -175,11 +180,13 @@ const FASE_LABELS: Record<string, string> = {
 export class PalpitesComponent {
   private readonly db = inject(SupabaseService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
 
   readonly bolao = signal<Bolao | null>(null);
   readonly jogos = signal<JogoComPalpite[]>([]);
   readonly participante = signal<Participante | null>(null);
+  readonly profile = signal<Profile | null>(null);
   readonly loading = signal(true);
   readonly loadingEntrar = signal(false);
   readonly savingId = signal<string | null>(null);
@@ -202,7 +209,13 @@ export class PalpitesComponent {
   async entrar(): Promise<void> {
     const bolao = this.bolao();
     const user = this.auth.currentUser();
-    if (!bolao || !user || !this.nomeExibicao.trim()) {
+    const profile = this.profile();
+
+    if (!bolao || !user) return;
+
+    const nome = profile?.username ?? '';
+    if (!nome.trim()) {
+      this.joinError.set('Configure seu username primeiro.');
       return;
     }
 
@@ -210,7 +223,7 @@ export class PalpitesComponent {
     this.joinError.set('');
 
     try {
-      const { data, error } = await this.db.joinBolao(bolao.id, user.id, this.nomeExibicao.trim());
+      const { data, error } = await this.db.joinBolao(bolao.id, user.id, nome.trim());
       if (error) {
         throw error;
       }
@@ -281,15 +294,14 @@ export class PalpitesComponent {
 
     let palpites: Palpite[] = [];
     if (user) {
-      const [{ data: palpitesData }, { data: participante }] = await Promise.all([
+      const [{ data: palpitesData }, { data: participante }, { data: profile }] = await Promise.all([
         this.db.getPalpitesByBolaoAndUser(bolao.id, user.id),
         this.db.getParticipante(bolao.id, user.id),
+        this.db.getProfile(user.id),
       ]);
       palpites = palpitesData ?? [];
       this.participante.set(participante ?? null);
-      if (participante?.nome_exibicao) {
-        this.nomeExibicao = participante.nome_exibicao;
-      }
+      this.profile.set((profile as Profile | null) ?? null);
     }
 
     const jogosComPalpite = (jogosRaw ?? []).map((jogo) => {

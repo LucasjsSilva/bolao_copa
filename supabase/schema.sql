@@ -1,5 +1,26 @@
 create extension if not exists pgcrypto;
 
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text not null check (char_length(trim(username)) > 0),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "Perfis são públicos para leitura" on public.profiles;
+create policy "Perfis são públicos para leitura" on public.profiles for select using (true);
+
+drop policy if exists "Usuário pode criar seu perfil" on public.profiles;
+create policy "Usuário pode criar seu perfil" on public.profiles for insert to authenticated with check (auth.uid() = id);
+
+drop policy if exists "Usuário pode atualizar seu perfil" on public.profiles;
+create policy "Usuário pode atualizar seu perfil" on public.profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+
+grant select on public.profiles to anon, authenticated;
+grant insert, update on public.profiles to authenticated;
+
 create table if not exists public.boloes (
   id uuid primary key default gen_random_uuid(),
   nome text not null check (char_length(trim(nome)) > 0),
@@ -261,6 +282,21 @@ create policy "Usuários podem editar palpites antes do jogo"
         and jogos.data_jogo > timezone('utc', now())
     )
   );
+
+create or replace function public.check_max_one_jogo_por_bolao()
+returns trigger language plpgsql as $$
+begin
+  if (select count(*) from public.jogos where bolao_id = NEW.bolao_id) >= 1 then
+    raise exception 'Este bolão já possui um jogo cadastrado.';
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_max_one_jogo on public.jogos;
+create trigger trg_max_one_jogo
+  before insert on public.jogos
+  for each row execute function public.check_max_one_jogo_por_bolao();
 
 grant usage on schema public to anon, authenticated;
 grant select on public.boloes to anon, authenticated;

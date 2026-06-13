@@ -18,16 +18,17 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'meus-palpites',
+    loadComponent: () => import('./features/meus-palpites/meus-palpites.component').then((m) => m.MeusPalpitesComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'bolao/entrar',
     loadComponent: () => import('./features/bolao/entrar/entrar.component').then((m) => m.EntrarComponent),
   },
   {
     path: 'bolao/:codigo',
     loadComponent: () => import('./features/bolao/palpites/palpites.component').then((m) => m.PalpitesComponent),
-  },
-  {
-    path: 'bolao/:codigo/ranking',
-    loadComponent: () => import('./features/bolao/ranking/ranking.component').then((m) => m.RankingComponent),
   },
   {
     path: 'times',
