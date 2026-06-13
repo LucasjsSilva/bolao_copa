@@ -50,6 +50,14 @@ export interface RankingEntry {
   acertos: number;
 }
 
+export interface Time {
+  id: number;
+  nome: string;
+  grupo: string;
+  bandeira_emoji: string | null;
+  created_at: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
   private readonly supabase: SupabaseClient;
@@ -182,5 +190,13 @@ export class SupabaseService {
       .order('total_pontos', { ascending: false })
       .order('acertos', { ascending: false })
       .order('nome_exibicao', { ascending: true });
+  }
+
+  async getTimes() {
+    return this.supabase
+      .from('times')
+      .select('*')
+      .order('grupo', { ascending: true })
+      .order('nome', { ascending: true });
   }
 }

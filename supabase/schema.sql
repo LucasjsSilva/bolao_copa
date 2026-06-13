@@ -53,6 +53,51 @@ create index if not exists idx_palpites_bolao on public.palpites (bolao_id);
 create index if not exists idx_palpites_jogo on public.palpites (jogo_id);
 create index if not exists idx_palpites_user on public.palpites (user_id);
 
+create table if not exists public.times (
+  id serial primary key,
+  nome text not null,
+  grupo text not null,
+  bandeira_emoji text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_times_grupo on public.times (grupo);
+
+insert into public.times (nome, grupo, bandeira_emoji) values
+  ('Argentina', 'Grupo A', '🇦🇷'),
+  ('Canadá', 'Grupo A', '🇨🇦'),
+  ('Chile', 'Grupo A', '🇨🇱'),
+  ('Peru', 'Grupo A', '🇵🇪'),
+  ('México', 'Grupo B', '🇲🇽'),
+  ('EUA', 'Grupo B', '🇺🇸'),
+  ('Panamá', 'Grupo B', '🇵🇦'),
+  ('Venezuela', 'Grupo B', '🇻🇪'),
+  ('Brasil', 'Grupo C', '🇧🇷'),
+  ('Noruega', 'Grupo C', '🇳🇴'),
+  ('Sérvia', 'Grupo C', '🇷🇸'),
+  ('Marrocos', 'Grupo C', '🇲🇦'),
+  ('França', 'Grupo D', '🇫🇷'),
+  ('Bélgica', 'Grupo D', '🇧🇪'),
+  ('Ucrânia', 'Grupo D', '🇺🇦'),
+  ('Tunísia', 'Grupo D', '🇹🇳'),
+  ('Espanha', 'Grupo E', '🇪🇸'),
+  ('Holanda', 'Grupo E', '🇳🇱'),
+  ('Portugal', 'Grupo E', '🇵🇹'),
+  ('Gana', 'Grupo E', '🇬🇭'),
+  ('Inglaterra', 'Grupo F', '🏴󠁧󠁢󠁥󠁮󠁧󠁿'),
+  ('Alemanha', 'Grupo F', '🇩🇪'),
+  ('Dinamarca', 'Grupo F', '🇩🇰'),
+  ('Irlanda', 'Grupo F', '🇮🇪'),
+  ('Austrália', 'Grupo G', '🇦🇺'),
+  ('Japão', 'Grupo G', '🇯🇵'),
+  ('Coreia do Sul', 'Grupo G', '🇰🇷'),
+  ('Iraque', 'Grupo G', '🇮🇶'),
+  ('Uruguai', 'Grupo H', '🇺🇾'),
+  ('Colômbia', 'Grupo H', '🇨🇴'),
+  ('Equador', 'Grupo H', '🇪🇨'),
+  ('Bolívia', 'Grupo H', '🇧🇴')
+on conflict do nothing;
+
 create or replace view public.ranking_bolao as
 select
   participantes.bolao_id,
@@ -222,6 +267,7 @@ grant select on public.boloes to anon, authenticated;
 grant select on public.jogos to anon, authenticated;
 grant select on public.participantes to anon, authenticated;
 grant select on public.ranking_bolao to anon, authenticated;
+grant select on public.times to anon, authenticated;
 grant insert, update, delete on public.boloes to authenticated;
 grant insert, update, delete on public.jogos to authenticated;
 grant insert, update on public.participantes to authenticated;
