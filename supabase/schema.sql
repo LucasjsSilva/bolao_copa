@@ -61,6 +61,11 @@ create table if not exists public.times (
   created_at timestamptz default now()
 );
 
+alter table public.times enable row level security;
+
+drop policy if exists "Times são públicos para leitura" on public.times;
+create policy "Times são públicos para leitura" on public.times for select using (true);
+
 create index if not exists idx_times_grupo on public.times (grupo);
 
 insert into public.times (nome, grupo, bandeira_emoji) values

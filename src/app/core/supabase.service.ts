@@ -42,20 +42,20 @@ export interface Palpite {
   created_at: string;
 }
 
-export interface RankingEntry {
-  bolao_id: string;
-  user_id: string;
-  nome_exibicao: string;
-  total_pontos: number;
-  acertos: number;
-}
-
 export interface Time {
   id: number;
   nome: string;
   grupo: string;
   bandeira_emoji: string | null;
   created_at: string;
+}
+
+export interface RankingEntry {
+  bolao_id: string;
+  user_id: string;
+  nome_exibicao: string;
+  total_pontos: number;
+  acertos: number;
 }
 
 @Injectable({ providedIn: 'root' })

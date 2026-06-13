@@ -14,6 +14,7 @@ import { AuthService } from './core/auth.service';
           <a routerLink="/bolao/entrar" class="text-xl font-bold text-emerald-400">⚽ Bolão Copa</a>
           <div class="flex items-center gap-3 text-sm">
             <a routerLink="/bolao/entrar" class="text-slate-300 transition-colors hover:text-white">Entrar em um bolão</a>
+            <a routerLink="/times" class="text-slate-300 transition-colors hover:text-white">Times</a>
             <ng-container *ngIf="auth.isLoggedIn(); else loggedOutLinks">
               <a routerLink="/admin/criar-bolao" class="text-slate-300 transition-colors hover:text-white">Meus bolões</a>
               <span class="hidden text-slate-500 md:inline">{{ auth.currentUser()?.email }}</span>
