@@ -4,6 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Bolao, Jogo, SupabaseService } from '../../../core/supabase.service';
 
+const FASE_LABELS: Record<string, string> = {
+  grupos: 'Fase de Grupos',
+  dezesseis_avos: '16 avos de Final',
+  oitavas: 'Oitavas de Final',
+  quartas: 'Quartas de Final',
+  semi: 'Semifinal',
+  terceiro_lugar: 'Disputa de 3º Lugar',
+  final: 'Final',
+};
+
 @Component({
   selector: 'app-gerenciar-jogos',
   standalone: true,
@@ -64,10 +74,12 @@ import { Bolao, Jogo, SupabaseService } from '../../../core/supabase.service';
                 name="fase"
                 class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
               >
-                <option value="grupos">Grupos</option>
-                <option value="oitavas">Oitavas</option>
-                <option value="quartas">Quartas</option>
+                <option value="grupos">Fase de Grupos</option>
+                <option value="dezesseis_avos">16 avos de Final</option>
+                <option value="oitavas">Oitavas de Final</option>
+                <option value="quartas">Quartas de Final</option>
                 <option value="semi">Semifinal</option>
+                <option value="terceiro_lugar">Disputa de 3º Lugar</option>
                 <option value="final">Final</option>
               </select>
             </div>
@@ -105,7 +117,7 @@ import { Bolao, Jogo, SupabaseService } from '../../../core/supabase.service';
               <div class="flex-1">
                 <div class="mb-1 flex flex-wrap items-center gap-2">
                   <span class="text-lg font-semibold">{{ jogo.time_a }} × {{ jogo.time_b }}</span>
-                  <span class="rounded-full bg-slate-700 px-2 py-0.5 text-xs capitalize text-slate-300">{{ jogo.fase }}</span>
+                  <span class="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">{{ faseLabel(jogo.fase) }}</span>
                   <span *ngIf="jogo.encerrado" class="rounded-full bg-emerald-900 px-2 py-0.5 text-xs text-emerald-300">Encerrado</span>
                 </div>
                 <p class="text-sm text-slate-400">{{ jogo.data_jogo | date: 'dd/MM/yyyy HH:mm' }}</p>
@@ -281,6 +293,10 @@ export class GerenciarJogosComponent {
     this.placarA = null;
     this.placarB = null;
     this.modalError.set('');
+  }
+
+  faseLabel(fase: string): string {
+    return FASE_LABELS[fase] ?? fase;
   }
 
   async encerrarJogo(): Promise<void> {

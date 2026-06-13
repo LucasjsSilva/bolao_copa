@@ -53,6 +53,51 @@ create index if not exists idx_palpites_bolao on public.palpites (bolao_id);
 create index if not exists idx_palpites_jogo on public.palpites (jogo_id);
 create index if not exists idx_palpites_user on public.palpites (user_id);
 
+create table if not exists public.times (
+  id serial primary key,
+  nome text not null,
+  grupo text not null,
+  bandeira_emoji text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_times_grupo on public.times (grupo);
+
+insert into public.times (nome, grupo, bandeira_emoji) values
+  ('Argentina', 'A', '🇦🇷'),
+  ('Canadá', 'A', '🇨🇦'),
+  ('Chile', 'A', '🇨🇱'),
+  ('Peru', 'A', '🇵🇪'),
+  ('México', 'B', '🇲🇽'),
+  ('EUA', 'B', '🇺🇸'),
+  ('Panamá', 'B', '🇵🇦'),
+  ('Venezuela', 'B', '🇻🇪'),
+  ('Brasil', 'C', '🇧🇷'),
+  ('Noruega', 'C', '🇳🇴'),
+  ('Sérvia', 'C', '🇷🇸'),
+  ('Marrocos', 'C', '🇲🇦'),
+  ('França', 'D', '🇫🇷'),
+  ('Bélgica', 'D', '🇧🇪'),
+  ('Ucrânia', 'D', '🇺🇦'),
+  ('Tunísia', 'D', '🇹🇳'),
+  ('Espanha', 'E', '🇪🇸'),
+  ('Holanda', 'E', '🇳🇱'),
+  ('Portugal', 'E', '🇵🇹'),
+  ('Gana', 'E', '🇬🇭'),
+  ('Inglaterra', 'F', '🏴󠁧󠁢󠁥󠁮󠁧󠁿'),
+  ('Alemanha', 'F', '🇩🇪'),
+  ('Dinamarca', 'F', '🇩🇰'),
+  ('Irlanda', 'F', '🇮🇪'),
+  ('Austrália', 'G', '🇦🇺'),
+  ('Japão', 'G', '🇯🇵'),
+  ('Coreia do Sul', 'G', '🇰🇷'),
+  ('Iraque', 'G', '🇮🇶'),
+  ('Uruguai', 'H', '🇺🇾'),
+  ('Colômbia', 'H', '🇨🇴'),
+  ('Equador', 'H', '🇪🇨'),
+  ('Bolívia', 'H', '🇧🇴')
+on conflict do nothing;
+
 create or replace view public.ranking_bolao as
 select
   participantes.bolao_id,
