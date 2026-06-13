@@ -34,68 +34,73 @@ const FASE_LABELS: Record<string, string> = {
 
         <div class="mb-8 rounded-2xl border border-slate-700 bg-slate-800 p-6">
           <h2 class="mb-4 text-lg font-semibold">Adicionar jogo</h2>
-          <form class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="adicionarJogo()">
-            <div>
-              <label class="mb-1 block text-sm text-slate-400">Time A</label>
-              <input
-                type="text"
-                [(ngModel)]="novoJogo.time_a"
-                name="time_a"
-                required
-                class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-                placeholder="Brasil"
-              />
+          <ng-container *ngIf="jogos().length === 0; else jogoJaCadastrado">
+            <form class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="adicionarJogo()">
+              <div>
+                <label class="mb-1 block text-sm text-slate-400">Time A</label>
+                <input
+                  type="text"
+                  [(ngModel)]="novoJogo.time_a"
+                  name="time_a"
+                  required
+                  class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  placeholder="Brasil"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm text-slate-400">Time B</label>
+                <input
+                  type="text"
+                  [(ngModel)]="novoJogo.time_b"
+                  name="time_b"
+                  required
+                  class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  placeholder="Argentina"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm text-slate-400">Data e hora</label>
+                <input
+                  type="datetime-local"
+                  [(ngModel)]="novoJogo.data_jogo"
+                  name="data_jogo"
+                  required
+                  class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm text-slate-400">Fase</label>
+                <select
+                  [(ngModel)]="novoJogo.fase"
+                  name="fase"
+                  class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="grupos">Fase de Grupos</option>
+                  <option value="dezesseis_avos">16 avos de Final</option>
+                  <option value="oitavas">Oitavas de Final</option>
+                  <option value="quartas">Quartas de Final</option>
+                  <option value="semi">Semifinal</option>
+                  <option value="terceiro_lugar">Disputa de 3º Lugar</option>
+                  <option value="final">Final</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <button
+                  type="submit"
+                  [disabled]="loadingAdd()"
+                  class="rounded-lg bg-emerald-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {{ loadingAdd() ? 'Adicionando...' : '+ Adicionar jogo' }}
+                </button>
+              </div>
+            </form>
+            <div *ngIf="errorMsg()" class="mt-3 rounded-lg border border-red-700 bg-red-900/40 p-3 text-sm text-red-200">
+              {{ errorMsg() }}
             </div>
-            <div>
-              <label class="mb-1 block text-sm text-slate-400">Time B</label>
-              <input
-                type="text"
-                [(ngModel)]="novoJogo.time_b"
-                name="time_b"
-                required
-                class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-                placeholder="Argentina"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-sm text-slate-400">Data e hora</label>
-              <input
-                type="datetime-local"
-                [(ngModel)]="novoJogo.data_jogo"
-                name="data_jogo"
-                required
-                class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-sm text-slate-400">Fase</label>
-              <select
-                [(ngModel)]="novoJogo.fase"
-                name="fase"
-                class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
-              >
-                <option value="grupos">Fase de Grupos</option>
-                <option value="dezesseis_avos">16 avos de Final</option>
-                <option value="oitavas">Oitavas de Final</option>
-                <option value="quartas">Quartas de Final</option>
-                <option value="semi">Semifinal</option>
-                <option value="terceiro_lugar">Disputa de 3º Lugar</option>
-                <option value="final">Final</option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <button
-                type="submit"
-                [disabled]="loadingAdd()"
-                class="rounded-lg bg-emerald-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {{ loadingAdd() ? 'Adicionando...' : '+ Adicionar jogo' }}
-              </button>
-            </div>
-          </form>
-          <div *ngIf="errorMsg()" class="mt-3 rounded-lg border border-red-700 bg-red-900/40 p-3 text-sm text-red-200">
-            {{ errorMsg() }}
-          </div>
+          </ng-container>
+          <ng-template #jogoJaCadastrado>
+            <p class="text-slate-400">Este bolão já possui um jogo cadastrado.</p>
+          </ng-template>
         </div>
 
         <div class="mb-4 flex items-center justify-between gap-4">
@@ -147,9 +152,6 @@ const FASE_LABELS: Record<string, string> = {
         <div class="mt-8 rounded-xl border border-slate-700 bg-slate-800 p-4">
           <p class="mb-1 text-sm text-slate-400">Link para os participantes:</p>
           <p class="break-all font-mono text-sm text-emerald-400">/bolao/{{ currentBolao.codigo }}</p>
-          <a [routerLink]="['/bolao', currentBolao.codigo, 'ranking']" class="mt-2 inline-block text-sm text-slate-300 underline transition-colors hover:text-white">
-            Ver ranking →
-          </a>
         </div>
       </ng-container>
 

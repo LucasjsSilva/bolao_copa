@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth.service';
+import { SupabaseService } from '../../../core/supabase.service';
 
 @Component({
   selector: 'app-login',
@@ -13,10 +14,43 @@ import { AuthService } from '../../../core/auth.service';
       <div class="w-full max-w-md">
         <div class="mb-8 text-center">
           <h1 class="mb-2 text-4xl font-bold text-emerald-400">⚽ Bolão Copa</h1>
-          <p class="text-slate-400">Crie bolões, convide amigos e acompanhe o ranking da Copa do Mundo.</p>
+          <p class="text-slate-400">Crie bolões, convide amigos e acompanhe a Copa do Mundo.</p>
         </div>
 
-        <div class="rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-2xl shadow-slate-950/30">
+        <!-- Username setup (shown after login when no profile exists) -->
+        <div *ngIf="showUsernameSetup()" class="rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-2xl shadow-slate-950/30">
+          <h2 class="mb-2 text-xl font-bold text-emerald-400">Configure seu username</h2>
+          <p class="mb-6 text-slate-400">Escolha um nome que aparecerá nos bolões que você participar.</p>
+
+          <div class="space-y-4">
+            <div>
+              <label class="mb-1 block text-sm text-slate-400">Username</label>
+              <input
+                type="text"
+                [(ngModel)]="newUsername"
+                name="newUsername"
+                class="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                placeholder="Seu nome no bolão"
+              />
+            </div>
+
+            <div *ngIf="usernameError()" class="rounded-lg border border-red-700 bg-red-900/40 p-3 text-sm text-red-200">
+              {{ usernameError() }}
+            </div>
+
+            <button
+              type="button"
+              (click)="saveUsername()"
+              [disabled]="savingUsername()"
+              class="w-full rounded-lg bg-emerald-600 py-3 font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {{ savingUsername() ? 'Salvando...' : 'Salvar e continuar' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Login / Register form -->
+        <div *ngIf="!showUsernameSetup()" class="rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-2xl shadow-slate-950/30">
           <div class="mb-6 flex gap-2 rounded-xl bg-slate-900 p-1">
             <button
               type="button"
@@ -82,15 +116,20 @@ import { AuthService } from '../../../core/auth.service';
 })
 export class LoginComponent {
   private readonly auth = inject(AuthService);
+  private readonly db = inject(SupabaseService);
   private readonly router = inject(Router);
 
   readonly mode = signal<'login' | 'register'>('login');
   readonly loading = signal(false);
   readonly errorMsg = signal('');
   readonly successMsg = signal('');
+  readonly showUsernameSetup = signal(false);
+  readonly savingUsername = signal(false);
+  readonly usernameError = signal('');
 
   email = '';
   password = '';
+  newUsername = '';
 
   async submit(): Promise<void> {
     this.errorMsg.set('');
@@ -103,6 +142,16 @@ export class LoginComponent {
         if (error) {
           throw error;
         }
+
+        const user = this.auth.currentUser();
+        if (user) {
+          const { data: profile } = await this.db.getProfile(user.id);
+          if (!profile) {
+            this.showUsernameSetup.set(true);
+            return;
+          }
+        }
+
         await this.router.navigate(['/admin/criar-bolao']);
         return;
       }
@@ -118,4 +167,32 @@ export class LoginComponent {
       this.loading.set(false);
     }
   }
+
+  async saveUsername(): Promise<void> {
+    const username = this.newUsername.trim();
+    if (!username) {
+      this.usernameError.set('Username é obrigatório.');
+      return;
+    }
+
+    const user = this.auth.currentUser();
+    if (!user) {
+      this.usernameError.set('Usuário não encontrado. Faça login novamente.');
+      return;
+    }
+
+    this.savingUsername.set(true);
+    this.usernameError.set('');
+
+    try {
+      const { error } = await this.db.upsertProfile(user.id, username);
+      if (error) throw error;
+      await this.router.navigate(['/admin/criar-bolao']);
+    } catch (err: unknown) {
+      this.usernameError.set(err instanceof Error ? err.message : 'Erro ao salvar username.');
+    } finally {
+      this.savingUsername.set(false);
+    }
+  }
 }
+
